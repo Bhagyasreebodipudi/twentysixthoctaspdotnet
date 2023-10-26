@@ -1,0 +1,40 @@
+name: ASP.NET 4.8 CI/CD
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v1.0.3
+
+      - name: Build
+        run: msbuild /p:Configuration=Release /t:Build
+
+  deploy:
+    needs: build
+    runs-on: windows-latest
+
+    steps:
+      - name: Download Artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: app-artifact
+          path: ${{ runner.workspace }}
+
+      - name: Set up Azure CLI
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Deploy to Azure Web App
+        run: |
+          az webapp deployment source config-zip --resource-group YourResourceGroup --name YourWebAppName --src .\app-artifact\YourWebAppPackage.zip
